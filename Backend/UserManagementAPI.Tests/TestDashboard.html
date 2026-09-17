@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Runner Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .filter-group {
+            margin-left: auto;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        .tests-container {
+            padding: 30px;
+        }
+
+        .test-case {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .test-case:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #eee;
+        }
+
+        .test-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .test-icon {
+            font-size: 20px;
+            width: 30px;
+            text-align: center;
+        }
+
+        .test-title {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .test-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .status-passed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-pending {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .test-description {
+            padding: 15px 20px;
+            background: white;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .test-result {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            display: none;
+        }
+
+        .test-result.show {
+            display: block;
+        }
+
+        .result-pass {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #28a745;
+        }
+
+        .result-fail {
+            color: #721c24;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .result-pending {
+            color: #383d41;
+            background: #e2e3e5;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #6c757d;
+        }
+
+        .test-actions {
+            padding: 10px 20px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-small:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-tests {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .legend {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            font-size: 13px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-icon {
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Test Runner Dashboard</h1>
+            <p>Section E: Authorization & Access Control Tests</p>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="runAllTests()">▶ Run All Tests</button>
+            <button class="btn btn-primary" onclick="clearResults()">🔄 Clear Results</button>
+            <div class="filter-group">
+                <span style="font-size: 13px; color: #666;">Filter:</span>
+                <button class="filter-btn active" onclick="filterTests('all')">All</button>
+                <button class="filter-btn" onclick="filterTests('passed')">✅ Passed</button>
+                <button class="filter-btn" onclick="filterTests('failed')">❌ Failed</button>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">Total Tests</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" style="color: #28a745;" id="passedCount">0</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" style="color: #dc3545;" id="failedCount">0</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" style="color: #6c757d;" id="pendingCount">0</div>
+                <div class="stat-label">Pending</div>
+            </div>
+        </div>
+
+        <div class="tests-container" id="testsContainer">
+            <!-- Tests will be populated here -->
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <span class="legend-icon">✅</span>
+                <span>Test passed successfully</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">❌</span>
+                <span>Test failed or returned error</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">⏳</span>
+                <span>Test pending execution</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">📋</span>
+                <span>Click to see details</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test cases data
+        const testCases = [
+            {
+                id: 'E1',
+                name: 'E1: Unauthorized Access - Users Endpoint',
+                description: 'Verify that /api/users requires JWT authentication. Expected: Unauthorized (401) without token',
+                endpoint: '/api/users',
+                method: 'GET',
+                requiresAuth: true,
+                expectedStatus: 401
+            },
+            {
+                id: 'E1b',
+                name: 'E1b: Chat Endpoint - Get History Without Token',
+                description: 'Verify /api/chat/history also requires JWT. Expected: Unauthorized (401) without token',
+                endpoint: '/api/chat/history',
+                method: 'GET',
+                requiresAuth: true,
+                expectedStatus: 401
+            },
+            {
+                id: 'E2',
+                name: 'E2: Unauthorized Access - Chat Endpoint',
+                description: 'Verify that /api/chat/* requires JWT authentication. Expected: Unauthorized (401) without token',
+                endpoint: '/api/chat/send',
+                method: 'POST',
+                body: { message: 'Hello' },
+                requiresAuth: true,
+                expectedStatus: 401
+            },
+            {
+                id: 'E3',
+                name: 'E3: Unauthorized Access - Login Endpoint',
+                description: 'Verify that /api/auth/login does NOT require JWT (public endpoint). Expected: Not Unauthorized (401)',
+                endpoint: '/api/auth/login',
+                method: 'POST',
+                body: { username: 'test', password: 'test' },
+                requiresAuth: false,
+                expectedStatus: 'not401'
+            },
+            {
+                id: 'E4',
+                name: 'E4: User Can Access Own Data',
+                description: 'Verify that authenticated user can access their own data. Expected: Success (200) with valid JWT token',
+                endpoint: '/api/users',
+                method: 'GET',
+                requiresAuth: true,
+                expectedStatus: 200
+            },
+            {
+                id: 'E4b',
+                name: 'E4b: Chat Access With Valid Token',
+                description: 'Verify authenticated user can access chat endpoints. Expected: Not Unauthorized (401) with valid JWT',
+                endpoint: '/api/chat/history',
+                method: 'GET',
+                requiresAuth: true,
+                expectedStatus: 'not401'
+            },
+            {
+                id: 'E5',
+                name: 'E5: Invalid Token Format',
+                description: 'Verify that malformed tokens are rejected. Expected: Unauthorized (401) with malformed token',
+                endpoint: '/api/users',
+                method: 'GET',
+                token: 'Bearer invalid.token.format',
+                expectedStatus: 401
+            }
+        ];
+
+        // State
+        let testResults = {};
+        let currentFilter = 'all';
+
+        // Initialize
+        function init() {
+            testCases.forEach(test => {
+                testResults[test.id] = { status: 'pending', response: null };
+            });
+            renderTests();
+            updateStats();
+        }
+
+        function renderTests() {
+            const container = document.getElementById('testsContainer');
+            const filtered = testCases.filter(test => {
+                if (currentFilter === 'all') return true;
+                if (currentFilter === 'passed') return testResults[test.id].status === 'passed';
+                if (currentFilter === 'failed') return testResults[test.id].status === 'failed';
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="no-tests">No tests match the current filter</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(test => {
+                const result = testResults[test.id];
+                const icon = result.status === 'passed' ? '✅' : result.status === 'failed' ? '❌' : '⏳';
+                return `
+                    <div class="test-case">
+                        <div class="test-header" onclick="toggleDetails('${test.id}')">
+                            <div class="test-info">
+                                <div class="test-icon">${icon}</div>
+                                <div class="test-title">${test.name}</div>
+                            </div>
+                            <div class="test-status ${result.status === 'passed' ? 'status-passed' : result.status === 'failed' ? 'status-failed' : 'status-pending'}">
+                                ${result.status.toUpperCase()}
+                            </div>
+                        </div>
+                        <div class="test-description">
+                            ${test.description}
+                        </div>
+                        ${result.response ? `
+                            <div class="test-result show">
+                                <div class="result-${result.status}">
+                                    <strong>Status:</strong> ${result.response.status}<br>
+                                    <strong>Expected:</strong> ${test.expectedStatus === 'not401' ? 'Not 401' : test.expectedStatus}<br>
+                                    <strong>Message:</strong> ${result.response.message}
+                                </div>
+                            </div>
+                        ` : ''}
+                        <div class="test-actions">
+                            <button class="btn-small" onclick="runSingleTest('${test.id}')">Run Test</button>
+                            <button class="btn-small" onclick="copyTestDetails('${test.id}')">Copy</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleDetails(testId) {
+            const resultDiv = event.target.closest('.test-case').querySelector('.test-result');
+            if (resultDiv) {
+                resultDiv.classList.toggle('show');
+            }
+        }
+
+        async function runSingleTest(testId) {
+            const test = testCases.find(t => t.id === testId);
+            testResults[testId].status = 'pending';
+            renderTests();
+
+            try {
+                const options = {
+                    method: test.method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
+
+                if (test.token) {
+                    options.headers['Authorization'] = test.token;
+                } else if (test.requiresAuth && testId.includes('4')) {
+                    // For E4 tests, we'd need a real token - skip for now
+                    options.headers['Authorization'] = 'Bearer mock-token';
+                }
+
+                if (test.body) {
+                    options.body = JSON.stringify(test.body);
+                }
+
+                const response = await fetch(`http://localhost:5278${test.endpoint}`, options);
+                const isValid = test.expectedStatus === 'not401' ? response.status !== 401 : response.status === test.expectedStatus;
+
+                testResults[testId] = {
+                    status: isValid ? 'passed' : 'failed',
+                    response: {
+                        status: response.status,
+                        message: isValid ? 'Test passed' : `Expected ${test.expectedStatus}, got ${response.status}`
+                    }
+                };
+            } catch (error) {
+                testResults[testId] = {
+                    status: 'failed',
+                    response: {
+                        status: 'Error',
+                        message: error.message
+                    }
+                };
+            }
+
+            renderTests();
+            updateStats();
+        }
+
+        async function runAllTests() {
+            for (const test of testCases) {
+                await runSingleTest(test.id);
+            }
+        }
+
+        function clearResults() {
+            testCases.forEach(test => {
+                testResults[test.id] = { status: 'pending', response: null };
+            });
+            renderTests();
+            updateStats();
+        }
+
+        function filterTests(type) {
+            currentFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderTests();
+        }
+
+        function updateStats() {
+            const passed = Object.values(testResults).filter(r => r.status === 'passed').length;
+            const failed = Object.values(testResults).filter(r => r.status === 'failed').length;
+            const pending = Object.values(testResults).filter(r => r.status === 'pending').length;
+
+            document.getElementById('totalCount').textContent = testCases.length;
+            document.getElementById('passedCount').textContent = passed;
+            document.getElementById('failedCount').textContent = failed;
+            document.getElementById('pendingCount').textContent = pending;
+        }
+
+        function copyTestDetails(testId) {
+            const test = testCases.find(t => t.id === testId);
+            const result = testResults[testId];
+            const details = `${test.name}\n${test.description}\nStatus: ${result.status}\n${result.response ? `Response: ${result.response.status} - ${result.response.message}` : 'Pending'}`;
+            navigator.clipboard.writeText(details);
+            alert('Test details copied to clipboard!');
+        }
+
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+# Build results
+bin/
+obj/
+dist/
+build/
+
+# Node modules
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment & Configuration
+.env
+.env.local
+.env.*.local
+appsettings.Development.json
+appsettings.Production.json
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Testing
+.coverage
+coverage/
+*.trx
+
+# User-specific files
+.user
+*.user
+
+# Visual Studio
+.vs/
+*.suo
+*.sln.docstates
+
+# ReSharper
+.resharper
+*.resharper.user
+
+# Rider
+.idea/
+*.sln.iml
+
+# Local History
+.history/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Azure
+local.settings.json
+
+# OS specific
+Thumbs.db
+.DS_Store
+ehthumbs.db
+
+# Backups
+*.bak
+*.backup
+*.sql.bak
+
+# Lock files (allow package management)
+# but ignore node_modules and obj
+
+# Certificates & Keys
+*.pem
+*.key
+*.crt

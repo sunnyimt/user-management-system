@@ -1,0 +1,50 @@
+USER MANAGEMENT SYSTEM - TEST DOCUMENTATION
+
+This is a test document for the User Management System.
+
+FEATURES:
+- User management with CRUD operations
+- JWT authentication with 1-hour tokens
+- BCrypt password hashing for security
+- Document upload and vector search
+- RAG-enhanced chat with AI
+- Admin panel for configuration
+
+HOW TO USE:
+1. Login with username "user1" and password "admin"
+2. Navigate to the Documents tab
+3. Upload PDF files containing your documentation
+4. Go to Chat tab and ask questions
+5. The AI will search your documents and provide answers with context
+
+ARCHITECTURE:
+The system uses:
+- React frontend on port 3000
+- ASP.NET Core backend on port 5278
+- PostgreSQL database with pgvector extension
+- Anthropic Claude API for embeddings and chat (or local Ollama)
+
+SECURITY:
+- All passwords are hashed with bcrypt
+- JWT tokens for stateless authentication
+- CORS configured for localhost:3000 only
+- Environment variables for sensitive data
+- Soft delete for data integrity
+
+API ENDPOINTS:
+POST /api/auth/login - User login
+POST /api/users - Create user
+GET /api/users - Get all users
+POST /api/chat/send - Send chat message
+GET /api/chat/history - Get chat history
+POST /api/document/upload - Upload document
+
+TROUBLESHOOTING:
+If you get an upload error:
+1. Ensure the file is a valid PDF
+2. Check that file size is less than 10MB
+3. Verify you're logged in with a valid JWT token
+4. Check backend logs for detailed error messages
+5. Ensure PostgreSQL is running
+
+For questions or issues, check the application logs in the terminal windows.
