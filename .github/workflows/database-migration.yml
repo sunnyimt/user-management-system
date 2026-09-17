@@ -1,0 +1,164 @@
+name: Database Migration to Azure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      migration_type:
+        description: 'Migration type'
+        required: true
+        default: 'backup_and_verify'
+        type: choice
+        options:
+          - backup_only
+          - backup_and_verify
+          - full_migration
+          - verify_only
+
+jobs:
+  database-migration:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install PostgreSQL client
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y postgresql-client
+
+    - name: Backup Local Database
+      if: contains(github.event.inputs.migration_type, 'backup')
+      env:
+        LOCAL_DB_HOST: ${{ secrets.LOCAL_DB_HOST }}
+        LOCAL_DB_PORT: ${{ secrets.LOCAL_DB_PORT }}
+        LOCAL_DB_NAME: ${{ secrets.LOCAL_DB_NAME }}
+        LOCAL_DB_USER: ${{ secrets.LOCAL_DB_USER }}
+        LOCAL_DB_PASSWORD: ${{ secrets.LOCAL_DB_PASSWORD }}
+      run: |
+        BACKUP_FILE="usermanagement_backup_$(date +%Y%m%d_%H%M%S).dump"
+        PGPASSWORD=$LOCAL_DB_PASSWORD pg_dump \
+          -h $LOCAL_DB_HOST \
+          -p $LOCAL_DB_PORT \
+          -U $LOCAL_DB_USER \
+          -d $LOCAL_DB_NAME \
+          --format=custom \
+          --verbose \
+          --compress=9 \
+          --file="$BACKUP_FILE"
+
+        echo "BACKUP_FILE=$BACKUP_FILE" >> $GITHUB_ENV
+        ls -lh "$BACKUP_FILE"
+
+    - name: Upload backup to Azure Storage
+      if: contains(github.event.inputs.migration_type, 'backup')
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az storage blob upload \
+            --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
+            --container-name "database-backups" \
+            --name "${{ env.BACKUP_FILE }}" \
+            --file "${{ env.BACKUP_FILE }}"
+
+    - name: Verify Azure PostgreSQL Connection
+      if: contains(github.event.inputs.migration_type, 'verify') || contains(github.event.inputs.migration_type, 'full')
+      env:
+        AZURE_DB_HOST: ${{ secrets.AZURE_DB_HOST }}
+        AZURE_DB_PORT: ${{ secrets.AZURE_DB_PORT }}
+        AZURE_DB_NAME: ${{ secrets.AZURE_DB_NAME }}
+        AZURE_DB_USER: ${{ secrets.AZURE_DB_USER }}
+        AZURE_DB_PASSWORD: ${{ secrets.AZURE_DB_PASSWORD }}
+      run: |
+        PGPASSWORD=$AZURE_DB_PASSWORD psql \
+          -h $AZURE_DB_HOST \
+          -p $AZURE_DB_PORT \
+          -U $AZURE_DB_USER \
+          -d postgres \
+          -c "SELECT version();"
+
+        echo "✅ Azure PostgreSQL connection verified"
+
+    - name: Create Azure Database if not exists
+      if: contains(github.event.inputs.migration_type, 'full')
+      env:
+        AZURE_DB_HOST: ${{ secrets.AZURE_DB_HOST }}
+        AZURE_DB_PORT: ${{ secrets.AZURE_DB_PORT }}
+        AZURE_DB_USER: ${{ secrets.AZURE_DB_USER }}
+        AZURE_DB_PASSWORD: ${{ secrets.AZURE_DB_PASSWORD }}
+      run: |
+        PGPASSWORD=$AZURE_DB_PASSWORD psql \
+          -h $AZURE_DB_HOST \
+          -p $AZURE_DB_PORT \
+          -U $AZURE_DB_USER \
+          -d postgres \
+          -c "CREATE DATABASE usermanagementdb_prod;" \
+          2>/dev/null || echo "Database already exists"
+
+    - name: Restore database to Azure
+      if: github.event.inputs.migration_type == 'full_migration'
+      env:
+        LOCAL_DB_HOST: ${{ secrets.LOCAL_DB_HOST }}
+        LOCAL_DB_PORT: ${{ secrets.LOCAL_DB_PORT }}
+        LOCAL_DB_NAME: ${{ secrets.LOCAL_DB_NAME }}
+        LOCAL_DB_USER: ${{ secrets.LOCAL_DB_USER }}
+        LOCAL_DB_PASSWORD: ${{ secrets.LOCAL_DB_PASSWORD }}
+        AZURE_DB_HOST: ${{ secrets.AZURE_DB_HOST }}
+        AZURE_DB_PORT: ${{ secrets.AZURE_DB_PORT }}
+        AZURE_DB_NAME: ${{ secrets.AZURE_DB_NAME }}
+        AZURE_DB_USER: ${{ secrets.AZURE_DB_USER }}
+        AZURE_DB_PASSWORD: ${{ secrets.AZURE_DB_PASSWORD }}
+      run: |
+        # Full dump from local to Azure
+        PGPASSWORD=$LOCAL_DB_PASSWORD pg_dump \
+          -h $LOCAL_DB_HOST \
+          -p $LOCAL_DB_PORT \
+          -U $LOCAL_DB_USER \
+          -d $LOCAL_DB_NAME \
+          --format=custom \
+          --verbose \
+          --compress=9 | \
+        PGPASSWORD=$AZURE_DB_PASSWORD pg_restore \
+          -h $AZURE_DB_HOST \
+          -p $AZURE_DB_PORT \
+          -U $AZURE_DB_USER \
+          -d usermanagementdb_prod \
+          --verbose \
+          --jobs=4
+
+    - name: Verify Migration
+      if: contains(github.event.inputs.migration_type, 'verify') || github.event.inputs.migration_type == 'full_migration'
+      env:
+        AZURE_DB_HOST: ${{ secrets.AZURE_DB_HOST }}
+        AZURE_DB_PORT: ${{ secrets.AZURE_DB_PORT }}
+        AZURE_DB_USER: ${{ secrets.AZURE_DB_USER }}
+        AZURE_DB_PASSWORD: ${{ secrets.AZURE_DB_PASSWORD }}
+      run: |
+        echo "Checking table counts..."
+        PGPASSWORD=$AZURE_DB_PASSWORD psql \
+          -h $AZURE_DB_HOST \
+          -p $AZURE_DB_PORT \
+          -U $AZURE_DB_USER \
+          -d usermanagementdb_prod \
+          -c "SELECT tablename FROM pg_tables WHERE schemaname='public';"
+
+    - name: Send Notification
+      if: always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const status = '${{ job.status }}';
+          const environment = '${{ github.event.inputs.environment }}';
+          const migrationType = '${{ github.event.inputs.migration_type }}';
+          console.log(`Database migration ${status} for ${environment} (${migrationType})`);
