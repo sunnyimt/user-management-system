@@ -97,3 +97,4 @@ The application will run on: `http://localhost:3000`
 - User data is persisted in a CSV file
 - The application requires both backend and frontend to be running
 - CORS is configured to allow requests from the React frontend
+# Deployment Test
