@@ -39,7 +39,7 @@ namespace UserManagementAPI.Services
             }
         }
 
-        public async Task<User> GetUserByIdAsync(int id)
+        public async Task<User?> GetUserByIdAsync(int id)
         {
             try
             {
@@ -52,7 +52,7 @@ namespace UserManagementAPI.Services
             }
         }
 
-        public async Task<User> GetUserByUsernameAsync(string username)
+        public async Task<User?> GetUserByUsernameAsync(string username)
         {
             try
             {
@@ -81,7 +81,7 @@ namespace UserManagementAPI.Services
             }
         }
 
-        public async Task<User> UpdateUserAsync(int id, User user)
+        public async Task<User?> UpdateUserAsync(int id, User user)
         {
             try
             {

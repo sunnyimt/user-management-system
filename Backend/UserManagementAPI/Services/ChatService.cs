@@ -258,7 +258,7 @@ namespace UserManagementAPI.Services
                     var assistantMessage = root
                         .GetProperty("content")[0]
                         .GetProperty("text")
-                        .GetString();
+                        .GetString() ?? "";
 
                     // Save assistant message to database
                     var assistantMsg = new ChatMessage
@@ -379,7 +379,7 @@ namespace UserManagementAPI.Services
                         using (var reader = new System.IO.StreamReader(responseStream, System.Text.Encoding.UTF8, true, 1024))
                         {
                             var fullResponse = new System.Text.StringBuilder();
-                            string line;
+                            string? line;
                             bool foundDone = false;
 
                             while ((line = await reader.ReadLineAsync()) != null && !foundDone)
