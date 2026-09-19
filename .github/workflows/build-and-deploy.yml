@@ -93,6 +93,17 @@ jobs:
         name: frontend-build
         path: frontend-build
 
+    - name: Determine target environment suffix
+      id: env-suffix
+      run: |
+        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          echo "suffix=prod" >> "$GITHUB_OUTPUT"
+        elif [ "${{ github.ref }}" == "refs/heads/staging" ]; then
+          echo "suffix=staging" >> "$GITHUB_OUTPUT"
+        else
+          echo "suffix=dev" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Login to Azure
       uses: azure/login@v2
       with:
@@ -101,7 +112,7 @@ jobs:
     - name: Deploy Backend to Azure
       uses: azure/webapps-deploy@v3
       with:
-        app-name: ${{ env.AZURE_WEBAPP_NAME }}-${{ github.ref == 'refs/heads/main' && 'prod' || github.ref == 'refs/heads/staging' && 'staging' || 'dev' }}
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}-${{ steps.env-suffix.outputs.suffix }}
         package: api-publish
         clean: true
 
@@ -118,7 +129,7 @@ jobs:
     - name: Run Health Check
       run: |
         sleep 10
-        STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://usermanagement-app-${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}.azurewebsites.net/api/auth/login)
+        STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.AZURE_WEBAPP_NAME }}-${{ steps.env-suffix.outputs.suffix }}.azurewebsites.net/api/auth/login)
         if [ $STATUS -eq 200 ] || [ $STATUS -eq 401 ]; then
           echo "Health check passed"
         else
