@@ -1,0 +1,276 @@
+.tests-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.tests-panel,
+.results-panel {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tests-panel h2,
+.results-panel h2 {
+  margin-top: 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.description {
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.test-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.btn-run-all,
+.btn-clear {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+}
+
+.btn-run-all {
+  background-color: #4caf50;
+  color: white;
+}
+
+.btn-run-all:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.btn-clear {
+  background-color: #999;
+  color: white;
+}
+
+.btn-clear:hover:not(:disabled) {
+  background-color: #888;
+}
+
+.btn-run-all:disabled,
+.btn-clear:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.individual-tests {
+  margin-top: 20px;
+}
+
+.individual-tests h3 {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.test-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.test-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background-color: #fafafa;
+  border-radius: 4px;
+  border: 1px solid #eee;
+}
+
+.test-info {
+  flex: 1;
+}
+
+.test-info strong {
+  display: block;
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.test-info p {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.btn-run-single {
+  padding: 6px 12px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.3s;
+  flex-shrink: 0;
+}
+
+.btn-run-single:hover:not(:disabled) {
+  background-color: #1976d2;
+}
+
+.btn-run-single:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.no-results {
+  color: #999;
+  font-size: 13px;
+  text-align: center;
+  padding: 20px;
+}
+
+.summary {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.summary-item {
+  flex: 1;
+  text-align: center;
+}
+
+.summary-label {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.summary-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.summary-item.passed {
+  background-color: #e8f5e9;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.summary-item.passed .summary-value {
+  color: #2e7d32;
+}
+
+.summary-item.failed {
+  background-color: #ffebee;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.summary-item.failed .summary-value {
+  color: #c62828;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.result-item {
+  padding: 12px;
+  border-radius: 4px;
+  border-left: 4px solid;
+  background-color: #fafafa;
+}
+
+.result-item.passed {
+  border-left-color: #4caf50;
+  background-color: #e8f5e9;
+}
+
+.result-item.failed {
+  border-left-color: #d32f2f;
+  background-color: #ffebee;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.result-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #333;
+}
+
+.result-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 3px;
+}
+
+.result-status.passed {
+  background-color: #4caf50;
+  color: white;
+}
+
+.result-status.failed {
+  background-color: #d32f2f;
+  color: white;
+}
+
+.result-message {
+  margin: 0;
+  font-size: 12px;
+  color: #555;
+  line-height: 1.4;
+}
+
+.result-time {
+  margin: 5px 0 0 0;
+  font-size: 11px;
+  color: #999;
+}
+
+.alert {
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.alert.error {
+  background-color: #ffebee;
+  color: #c62828;
+  border-left: 4px solid #d32f2f;
+}
+
+@media (max-width: 768px) {
+  .tests-container {
+    grid-template-columns: 1fr;
+  }
+}
