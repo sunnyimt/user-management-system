@@ -103,7 +103,6 @@ jobs:
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}-${{ github.ref == 'refs/heads/main' && 'prod' || github.ref == 'refs/heads/staging' && 'staging' || 'dev' }}
         package: api-publish
-        slot-name: staging
         clean: true
 
     - name: Deploy Frontend to Azure Static Web Apps
@@ -126,14 +125,6 @@ jobs:
           echo "Health check failed with status $STATUS"
           exit 1
         fi
-
-    - name: Swap Slots (Production only)
-      if: github.ref == 'refs/heads/main' && success()
-      run: |
-        az webapp deployment slot swap \
-          --resource-group usermanagement-rg \
-          --name usermanagement-app-prod \
-          --slot staging
 
     - name: Notify Deployment
       if: always()

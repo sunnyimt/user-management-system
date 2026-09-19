@@ -177,9 +177,7 @@ The CI/CD pipeline automatically deploys based on branch:
 ```
 main → Production Azure App Service
   ↓
-  Slot: staging (for testing)
-  ↓
-  After verification, swap to production
+  Direct deployment
 
 staging → Staging Azure App Service
   ↓
@@ -189,6 +187,12 @@ develop → Development Azure App Service
   ↓
   Direct deployment
 ```
+
+> **Note:** Deployment uses direct publish (no slot swap). Azure deployment
+> slots require the Standard (S1) tier or higher; this setup targets the
+> B1 Basic tier for cost, which doesn't support slots. If you later
+> upgrade the App Service Plan to Standard+, you can reintroduce a
+> staging slot and blue-green swap for zero-downtime production releases.
 
 ---
 
@@ -303,10 +307,9 @@ git push origin main
 ```
 Deployment process:
   1. Build and test
-  2. Deploy to staging slot
+  2. Deploy directly to production App Service
   3. Run health checks
-  4. Swap slots (staging → production)
-  5. Monitor for issues
+  4. Monitor for issues
 ```
 
 ---
@@ -387,13 +390,7 @@ LocalLLM__Model=mistral
 If production deployment has issues:
 
 ```bash
-# Option 1: Use Azure slot swap (revert to previous slot)
-az webapp deployment slot swap \
-  --resource-group usermanagement-rg \
-  --name usermanagement-app-prod \
-  --slot staging
-
-# Option 2: Redeploy previous version
+# Redeploy the previous known-good version
 git checkout previous-commit-hash
 git push origin main --force-with-lease
 # GitHub Actions will redeploy that version
