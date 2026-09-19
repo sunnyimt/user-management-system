@@ -28,7 +28,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
       with:
-        submodules: 'recursive'
+        submodules: 'false'
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
@@ -50,9 +50,11 @@ jobs:
       run: dotnet test Backend/UserManagementAPI.Tests/UserManagementAPI.Tests.csproj --configuration Release --no-build --verbosity normal
 
     - name: Install Frontend dependencies
+      if: hashFiles('Frontend/user-management-app/package.json') != ''
       run: cd Frontend/user-management-app && npm ci
 
     - name: Build Frontend
+      if: hashFiles('Frontend/user-management-app/package.json') != ''
       run: cd Frontend/user-management-app && npm run build
 
     - name: Publish Backend
@@ -65,6 +67,7 @@ jobs:
         path: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
 
     - name: Upload frontend artifact
+      if: hashFiles('Frontend/user-management-app/build') != ''
       uses: actions/upload-artifact@v4
       with:
         name: frontend-build
@@ -104,7 +107,7 @@ jobs:
         clean: true
 
     - name: Deploy Frontend to Azure Static Web Apps
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging') && hashFiles('frontend-build') != ''
       uses: Azure/static-web-apps-deploy@v2
       with:
         azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
