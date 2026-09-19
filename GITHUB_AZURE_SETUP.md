@@ -58,7 +58,7 @@ AZURE_SUBSCRIPTION_ID
 {your-subscription-id}
 
 AZURE_RESOURCE_GROUP
-usermanagement-rg
+rg-usermanagementapp
 
 AZURE_STORAGE_ACCOUNT
 {storage-account-name}
@@ -79,16 +79,16 @@ LOCAL_DB_PASSWORD
 {secure-password}
 
 AZURE_DB_HOST
-usermanagement-db.postgres.database.azure.com
+asif-postgres.postgres.database.azure.com
 
 AZURE_DB_PORT
 5432
 
 AZURE_DB_NAME
-usermanagementdb_prod
+usermanagementdb
 
 AZURE_DB_USER
-azuredbadmin
+postgres
 
 AZURE_DB_PASSWORD
 {secure-password}
@@ -123,17 +123,19 @@ In **Settings → Environments → Create new environment**
 ```bash
 # For each environment (dev, staging, prod)
 az webapp create \
-  --resource-group usermanagement-rg \
+  --resource-group rg-usermanagementapp \
   --plan usermanagement-plan \
   --name usermanagement-app-{env} \
   --runtime "DOTNETCORE:8.0"
 
-# Configure connection string
+# Configure connection string (note: as an Application Setting, NOT via
+# `az webapp config connection-string` — .NET's GetConnectionString("DefaultConnection")
+# only reads the ConnectionStrings__DefaultConnection app setting key)
 az webapp config appsettings set \
-  --resource-group usermanagement-rg \
+  --resource-group rg-usermanagementapp \
   --name usermanagement-app-{env} \
   --settings \
-    ConnectionStrings__DefaultConnection="Host=usermanagement-db.postgres.database.azure.com;Port=5432;Database=usermanagementdb_prod;Username=azuredbadmin;Password={password};SSL Mode=Require;" \
+    ConnectionStrings__DefaultConnection="Host=asif-postgres.postgres.database.azure.com;Port=5432;Database=usermanagementdb;Username=postgres;Password={password};SSL Mode=Require;" \
     Jwt__Secret="{jwt-secret}" \
     Jwt__Issuer="UserManagementApp" \
     Jwt__Audience="UserManagementAppUsers" \
@@ -144,7 +146,7 @@ az webapp config appsettings set \
 
 # Enable continuous deployment
 az webapp deployment github-actions \
-  --resource-group usermanagement-rg \
+  --resource-group rg-usermanagementapp \
   --name usermanagement-app-{env} \
   --repo {github-username}/{repo-name} \
   --branch {branch}
@@ -354,7 +356,7 @@ GitHub → Actions → {workflow run} → Jobs → {job} → Logs
 ```bash
 # Stream logs
 az webapp log tail \
-  --resource-group usermanagement-rg \
+  --resource-group rg-usermanagementapp \
   --name usermanagement-app-{env}
 ```
 
@@ -411,5 +413,5 @@ git push origin main --force-with-lease
 
 ---
 
-**Documentation Last Updated:** 2026-09-16  
+**Documentation Last Updated:** 2026-09-19  
 **Relevant:** GitHub Actions, Azure Deployment, CI/CD Pipeline
