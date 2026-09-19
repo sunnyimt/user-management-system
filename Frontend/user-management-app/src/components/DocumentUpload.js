@@ -66,7 +66,7 @@ const DocumentUpload = () => {
     formData.append('file', file);
 
     try {
-      const response = await apiService.uploadDocument(formData);
+      await apiService.uploadDocument(formData);
       setSuccess('Document uploaded successfully');
       loadDocuments();
     } catch (err) {
