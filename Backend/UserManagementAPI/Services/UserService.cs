@@ -8,10 +8,10 @@ namespace UserManagementAPI.Services
     public interface IUserService
     {
         Task<List<User>> GetAllUsersAsync();
-        Task<User> GetUserByIdAsync(int id);
-        Task<User> GetUserByUsernameAsync(string username);
+        Task<User?> GetUserByIdAsync(int id);
+        Task<User?> GetUserByUsernameAsync(string username);
         Task<User> CreateUserAsync(User user);
-        Task<User> UpdateUserAsync(int id, User user);
+        Task<User?> UpdateUserAsync(int id, User user);
         Task DeleteUserAsync(int id);
     }
 

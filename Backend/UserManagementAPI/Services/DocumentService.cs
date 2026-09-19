@@ -135,7 +135,7 @@ namespace UserManagementAPI.Services
 
         private async Task ProcessDocumentChunksAsync(Document document)
         {
-            var chunks = SplitTextIntoChunks(document.OriginalText);
+            var chunks = SplitTextIntoChunks(document.OriginalText ?? "");
 
             var documentChunks = new List<DocumentChunk>();
 
