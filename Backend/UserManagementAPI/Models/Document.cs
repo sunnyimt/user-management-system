@@ -10,13 +10,13 @@ namespace UserManagementAPI.Models
         public int Id { get; set; }
 
         [Required]
-        public string FileName { get; set; }
+        public string? FileName { get; set; }
 
         [Required]
-        public string FileType { get; set; } // "pdf", "system-docs", "api-docs", etc.
+        public string? FileType { get; set; } // "pdf", "system-docs", "api-docs", etc.
 
         [Required]
-        public string OriginalText { get; set; }
+        public string? OriginalText { get; set; }
 
         [Required]
         public DateTime UploadedAt { get; set; }
@@ -40,16 +40,16 @@ namespace UserManagementAPI.Models
         public int DocumentId { get; set; }
 
         [ForeignKey("DocumentId")]
-        public Document Document { get; set; }
+        public Document? Document { get; set; }
 
         [Required]
-        public string Content { get; set; }
+        public string? Content { get; set; }
 
         [Required]
         public int ChunkIndex { get; set; }
 
         // Store embeddings as a float array
-        public float[] Embedding { get; set; } // Vector embeddings (1536 dimensions for Claude)
+        public float[]? Embedding { get; set; } // Vector embeddings (1536 dimensions for Claude)
 
         [Required]
         public DateTime CreatedAt { get; set; }
