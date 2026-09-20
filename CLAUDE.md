@@ -7,7 +7,7 @@
 ### Tech Stack
 
 **Backend:**
-- ASP.NET Core 8.0 (.NET 8)
+- ASP.NET Core 10.0 (.NET 10)
 - Entity Framework Core with PostgreSQL 18.6
 - JWT Authentication
 - Ollama (local LLM - Mistral model)
@@ -84,7 +84,7 @@ C:\Users\L\UserManagementApp\
 ## Getting Started
 
 ### Prerequisites
-- .NET 8 SDK installed
+- .NET 10 SDK installed
 - Node.js and NPM installed
 - PostgreSQL 18.6 running (connection: localhost:5432)
 - Ollama running locally (for AI features): `ollama run mistral`

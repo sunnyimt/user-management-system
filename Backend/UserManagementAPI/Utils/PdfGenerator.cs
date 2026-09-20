@@ -82,7 +82,7 @@ Frontend Layer:
 - Test runner dashboard
 
 Backend Layer:
-- ASP.NET Core 8.0 Web API on port 5278
+- ASP.NET Core 10.0 Web API on port 5278
 - Entity Framework Core for database access
 - JWT-based authentication
 - RESTful API design
@@ -95,7 +95,7 @@ Data Layer:
 - Automatic indexing for performance
 
 Technology Stack:
-- Backend: C# .NET 8.0, ASP.NET Core
+- Backend: C# .NET 10.0, ASP.NET Core
 - Frontend: React 18+, JavaScript/TypeScript
 - Database: PostgreSQL 18.6 with pgvector
 - Authentication: JWT (JSON Web Tokens)

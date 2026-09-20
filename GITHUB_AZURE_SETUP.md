@@ -121,12 +121,17 @@ In **Settings → Environments → Create new environment**
 ## Step 3: Create Azure App Service Instances
 
 ```bash
-# For each environment (dev, staging, prod)
+# First, confirm the exact runtime string Azure currently accepts for .NET 10
+# (this string format has changed between CLI versions, e.g. "DOTNETCORE|10.0"
+# vs "DOTNETCORE:10.0" — verify rather than guessing):
+az webapp list-runtimes --os linux --query "[?contains(@, 'dotnet')]" --output table
+
+# For each environment (dev, staging, prod) — use the exact string from above
 az webapp create \
   --resource-group rg-usermanagementapp \
   --plan usermanagement-plan \
   --name usermanagement-app-{env} \
-  --runtime "DOTNETCORE:8.0"
+  --runtime "<runtime-string-from-list-above>"
 
 # Configure connection string (note: as an Application Setting, NOT via
 # `az webapp config connection-string` — .NET's GetConnectionString("DefaultConnection")
