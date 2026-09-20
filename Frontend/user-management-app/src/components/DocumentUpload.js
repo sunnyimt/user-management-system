@@ -16,7 +16,7 @@ const DocumentUpload = () => {
   const loadDocuments = async () => {
     try {
       const response = await apiService.getMyDocuments();
-      setDocuments(response.data);
+      setDocuments(response.data.documents || []);
       setError('');
     } catch (err) {
       setError('Failed to load documents');

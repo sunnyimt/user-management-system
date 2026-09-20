@@ -57,10 +57,8 @@ const Chat = () => {
   };
 
   const handleAcceptLocalResults = () => {
-    const resultContent = localResults.chunks
-      ? `Found ${localResults.chunks.length} relevant documents: ${localResults.chunks
-          .map((c) => c.content.substring(0, 100))
-          .join(' | ')}`
+    const resultContent = localResults.hasResults
+      ? localResults.context
       : 'No relevant documents found.';
 
     setMessages((prev) => [
@@ -102,14 +100,12 @@ const Chat = () => {
         {localResults && (
           <div className="local-results">
             <h3>Local Database Results</h3>
-            {localResults.chunks && localResults.chunks.length > 0 ? (
+            {localResults.hasResults ? (
               <>
                 <div className="results-list">
-                  {localResults.chunks.map((chunk, idx) => (
-                    <div key={idx} className="result-item">
-                      <p>{chunk.content}</p>
-                    </div>
-                  ))}
+                  <div className="result-item">
+                    <p>{localResults.context}</p>
+                  </div>
                 </div>
                 <div className="chat-actions">
                   <button className="btn-accept" onClick={handleAcceptLocalResults} disabled={loading}>
