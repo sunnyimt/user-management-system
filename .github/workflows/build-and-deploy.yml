@@ -129,7 +129,13 @@ jobs:
     - name: Run Health Check
       run: |
         sleep 10
-        STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.AZURE_WEBAPP_NAME }}-${{ steps.env-suffix.outputs.suffix }}.azurewebsites.net/api/auth/login)
+        STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+          -X POST \
+          -H "Content-Type: application/json" \
+          -d '{"username":"healthcheck","password":"healthcheck"}' \
+          https://${{ env.AZURE_WEBAPP_NAME }}-${{ steps.env-suffix.outputs.suffix }}.azurewebsites.net/api/auth/login)
+        # 200 = would only happen if a real "healthcheck" user existed; 401 = app is up,
+        # DB reachable, and correctly rejected bogus credentials (the expected case)
         if [ $STATUS -eq 200 ] || [ $STATUS -eq 401 ]; then
           echo "Health check passed"
         else
