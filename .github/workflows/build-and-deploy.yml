@@ -49,12 +49,25 @@ jobs:
     - name: Run Backend Tests
       run: dotnet test Backend/UserManagementAPI.Tests/UserManagementAPI.Tests.csproj --configuration Release --no-build --verbosity normal
 
+    - name: Determine target environment suffix
+      id: env-suffix
+      run: |
+        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          echo "suffix=prod" >> "$GITHUB_OUTPUT"
+        elif [ "${{ github.ref }}" == "refs/heads/staging" ]; then
+          echo "suffix=staging" >> "$GITHUB_OUTPUT"
+        else
+          echo "suffix=dev" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Install Frontend dependencies
       if: hashFiles('Frontend/user-management-app/package.json') != ''
       run: cd Frontend/user-management-app && npm ci
 
     - name: Build Frontend
       if: hashFiles('Frontend/user-management-app/package.json') != ''
+      env:
+        REACT_APP_API_BASE_URL: https://${{ env.AZURE_WEBAPP_NAME }}-${{ steps.env-suffix.outputs.suffix }}.azurewebsites.net
       run: cd Frontend/user-management-app && npm run build
 
     - name: Publish Backend
