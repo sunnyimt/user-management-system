@@ -1,0 +1,167 @@
+name: Build and Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - staging
+  pull_request:
+    branches:
+      - main
+      - develop
+      - staging
+
+env:
+  AZURE_WEBAPP_NAME: usermanagement-app
+  AZURE_WEBAPP_PACKAGE_PATH: './Backend/UserManagementAPI/bin/Release/net10.0/publish'
+  DOTNET_VERSION: '10.0.x'
+  NODE_VERSION: '18.x'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/staging' && 'staging' || 'development' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+      with:
+        submodules: 'false'
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Restore NuGet packages
+      run: dotnet restore Backend/UserManagementAPI/UserManagementAPI.csproj
+
+    - name: Build Backend
+      run: dotnet build Backend/UserManagementAPI/UserManagementAPI.csproj --configuration Release --no-restore
+
+    - name: Run Backend Tests
+      run: dotnet test Backend/UserManagementAPI.Tests/UserManagementAPI.Tests.csproj --configuration Release --no-build --verbosity normal
+
+    - name: Determine target environment suffix
+      id: env-suffix
+      run: |
+        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          echo "suffix=prod" >> "$GITHUB_OUTPUT"
+        elif [ "${{ github.ref }}" == "refs/heads/staging" ]; then
+          echo "suffix=staging" >> "$GITHUB_OUTPUT"
+        else
+          echo "suffix=dev" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Install Frontend dependencies
+      if: hashFiles('Frontend/user-management-app/package.json') != ''
+      run: cd Frontend/user-management-app && npm ci
+
+    - name: Build Frontend
+      if: hashFiles('Frontend/user-management-app/package.json') != ''
+      env:
+        REACT_APP_API_BASE_URL: https://${{ env.AZURE_WEBAPP_NAME }}-${{ steps.env-suffix.outputs.suffix }}.azurewebsites.net
+      run: cd Frontend/user-management-app && npm run build
+
+    - name: Publish Backend
+      run: dotnet publish Backend/UserManagementAPI/UserManagementAPI.csproj --configuration Release --no-build --output ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v5
+      with:
+        name: api-publish
+        path: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+
+    - name: Upload frontend artifact
+      if: hashFiles('Frontend/user-management-app/build') != ''
+      uses: actions/upload-artifact@v5
+      with:
+        name: frontend-build
+        path: Frontend/user-management-app/build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/staging' && 'staging' || 'development' }}
+
+    steps:
+    - name: Download backend artifact
+      uses: actions/download-artifact@v5
+      with:
+        name: api-publish
+        path: api-publish
+
+    - name: Download frontend artifact
+      uses: actions/download-artifact@v5
+      with:
+        name: frontend-build
+        path: frontend-build
+
+    - name: Determine target environment suffix
+      id: env-suffix
+      run: |
+        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          echo "suffix=prod" >> "$GITHUB_OUTPUT"
+        elif [ "${{ github.ref }}" == "refs/heads/staging" ]; then
+          echo "suffix=staging" >> "$GITHUB_OUTPUT"
+        else
+          echo "suffix=dev" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy Backend to Azure
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}-${{ steps.env-suffix.outputs.suffix }}
+        package: api-publish
+        clean: true
+
+    - name: Deploy Frontend to Azure Static Web Apps
+      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging') && hashFiles('frontend-build') != ''
+      uses: Azure/static-web-apps-deploy@v1
+      with:
+        azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+        action: "upload"
+        app_location: "frontend-build"
+        output_location: ""
+        skip_app_build: true
+
+    - name: Run Health Check
+      run: |
+        sleep 10
+        STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+          -X POST \
+          -H "Content-Type: application/json" \
+          -d '{"username":"healthcheck","password":"healthcheck"}' \
+          https://${{ env.AZURE_WEBAPP_NAME }}-${{ steps.env-suffix.outputs.suffix }}.azurewebsites.net/api/auth/login)
+        # 200 = would only happen if a real "healthcheck" user existed; 401 = app is up,
+        # DB reachable, and correctly rejected bogus credentials (the expected case)
+        if [ $STATUS -eq 200 ] || [ $STATUS -eq 401 ]; then
+          echo "Health check passed"
+        else
+          echo "Health check failed with status $STATUS"
+          exit 1
+        fi
+
+    - name: Notify Deployment
+      if: always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const deploymentStatus = '${{ job.status }}';
+          const branch = '${{ github.ref }}';
+          const commit = '${{ github.sha }}'.substring(0, 7);
+          console.log(`Deployment ${deploymentStatus} for ${branch} (${commit})`);

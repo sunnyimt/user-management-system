@@ -104,6 +104,9 @@ namespace UserManagementAPI.Controllers
         [HttpPost("search")]
         public async Task<IActionResult> SearchDocuments([FromBody] SearchRequest request)
         {
+            if (string.IsNullOrEmpty(request?.Query))
+                return BadRequest(new { success = false, error = "Query cannot be empty" });
+
             try
             {
                 var context = await _documentService.GenerateEmbeddingContextAsync(request.Query);
@@ -119,6 +122,6 @@ namespace UserManagementAPI.Controllers
 
     public class SearchRequest
     {
-        public string Query { get; set; }
+        public string? Query { get; set; }
     }
 }

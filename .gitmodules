@@ -1,3 +1,0 @@
-[submodule "Frontend/user-management-app"]
-	path = Frontend/user-management-app
-	url = ../Frontend/user-management-app

@@ -6,8 +6,6 @@ build/
 
 # Node modules
 node_modules/
-package-lock.json
-yarn.lock
 
 # Environment & Configuration
 .env

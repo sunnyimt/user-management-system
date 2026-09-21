@@ -1,0 +1,21 @@
+# Code owners for User Management System
+
+# Backend
+/Backend/UserManagementAPI/ @development-team
+
+# Frontend
+/Frontend/user-management-app/ @development-team
+
+# Deployment & Infrastructure
+/.github/ @development-team
+/deploy.md @development-team
+/docker-compose.yml @development-team
+
+# Documentation
+/CLAUDE.md @development-team
+/deploy.md @development-team
+/README.md @development-team
+
+# Database & Configuration
+*.json @development-team
+*.yml @development-team

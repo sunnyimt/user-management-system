@@ -1,13 +1,13 @@
 # User Management Application
 
-A simple React + .NET 8 application for managing users with login functionality.
+A simple React + .NET 10 application for managing users with login functionality.
 
 ## Project Structure
 
 ```
 UserManagementApp/
 ├── Backend/
-│   └── UserManagementAPI/    (.NET 8 WebAPI)
+│   └── UserManagementAPI/    (.NET 10 WebAPI)
 ├── Frontend/
 │   └── user-management-app/  (React application)
 └── README.md
@@ -25,10 +25,10 @@ UserManagementApp/
 - **Username**: admin
 - **Password**: admin
 
-## Backend Setup (.NET 8)
+## Backend Setup (.NET 10)
 
 ### Prerequisites
-- .NET 8 SDK installed
+- .NET 10 SDK installed
 
 ### Running the Backend
 
@@ -82,7 +82,7 @@ The application will run on: `http://localhost:3000`
 ## Technologies Used
 
 ### Backend
-- .NET 8
+- .NET 10
 - ASP.NET Core
 - CsvHelper (for CSV file handling)
 
@@ -97,3 +97,4 @@ The application will run on: `http://localhost:3000`
 - User data is persisted in a CSV file
 - The application requires both backend and frontend to be running
 - CORS is configured to allow requests from the React frontend
+# Deployment Test

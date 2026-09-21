@@ -8,10 +8,10 @@ namespace UserManagementAPI.Services
     public interface IUserService
     {
         Task<List<User>> GetAllUsersAsync();
-        Task<User> GetUserByIdAsync(int id);
-        Task<User> GetUserByUsernameAsync(string username);
+        Task<User?> GetUserByIdAsync(int id);
+        Task<User?> GetUserByUsernameAsync(string username);
         Task<User> CreateUserAsync(User user);
-        Task<User> UpdateUserAsync(int id, User user);
+        Task<User?> UpdateUserAsync(int id, User user);
         Task DeleteUserAsync(int id);
     }
 
@@ -39,7 +39,7 @@ namespace UserManagementAPI.Services
             }
         }
 
-        public async Task<User> GetUserByIdAsync(int id)
+        public async Task<User?> GetUserByIdAsync(int id)
         {
             try
             {
@@ -52,7 +52,7 @@ namespace UserManagementAPI.Services
             }
         }
 
-        public async Task<User> GetUserByUsernameAsync(string username)
+        public async Task<User?> GetUserByUsernameAsync(string username)
         {
             try
             {
@@ -81,7 +81,7 @@ namespace UserManagementAPI.Services
             }
         }
 
-        public async Task<User> UpdateUserAsync(int id, User user)
+        public async Task<User?> UpdateUserAsync(int id, User user)
         {
             try
             {

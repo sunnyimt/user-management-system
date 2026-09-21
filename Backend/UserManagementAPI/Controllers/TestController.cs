@@ -146,7 +146,7 @@ namespace UserManagementAPI.Controllers
             return results;
         }
 
-        private string ExtractTestName(string line)
+        private string? ExtractTestName(string line)
         {
             var parts = line.Split(new[] { "::", "-", "✓", "✗" }, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length > 0)

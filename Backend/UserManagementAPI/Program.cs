@@ -30,7 +30,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "https://localhost:3000")
+        policy.WithOrigins(
+                  "http://localhost:3000",
+                  "https://localhost:3000",
+                  "https://happy-dune-0ab12601e.3.azurestaticapps.net"
+              )
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -70,6 +74,23 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"Info: pgvector extension may already exist: {ex.Message}");
+    }
+
+    // Create users table if it doesn't exist
+    try
+    {
+        await dbContext.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(255) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+            );
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error creating users table: {ex.Message}");
     }
 
     // Create chat_messages table if it doesn't exist

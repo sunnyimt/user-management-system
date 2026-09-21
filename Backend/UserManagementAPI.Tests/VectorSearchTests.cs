@@ -48,8 +48,8 @@ namespace UserManagementAPI.Tests
 
                 // Assert
                 Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-                var responseData = await response.Content.ReadAsAsync<dynamic>();
-                Assert.NotNull(responseData);
+                var responseData = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                Assert.NotEqual(System.Text.Json.JsonValueKind.Undefined, responseData.ValueKind);
             }
         }
 

@@ -135,7 +135,7 @@ namespace UserManagementAPI.Services
 
         private async Task ProcessDocumentChunksAsync(Document document)
         {
-            var chunks = SplitTextIntoChunks(document.OriginalText);
+            var chunks = SplitTextIntoChunks(document.OriginalText ?? "");
 
             var documentChunks = new List<DocumentChunk>();
 
@@ -265,7 +265,7 @@ namespace UserManagementAPI.Services
 
                 // Fetch all chunks and calculate similarity on client side
                 var chunks = await _context.DocumentChunks
-                    .Where(c => !c.IsDeleted && !c.Document.IsDeleted)
+                    .Where(c => !c.IsDeleted && c.Document != null && !c.Document.IsDeleted)
                     .Include(c => c.Document)
                     .AsNoTracking()
                     .ToListAsync();
@@ -383,7 +383,7 @@ namespace UserManagementAPI.Services
 
             foreach (var chunk in relevantChunks)
             {
-                context.AppendLine($"## From: {chunk.Document.FileName}");
+                context.AppendLine($"## From: {chunk.Document?.FileName}");
                 context.AppendLine(chunk.Content);
                 context.AppendLine();
             }
