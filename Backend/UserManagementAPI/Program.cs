@@ -33,7 +33,8 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                   "http://localhost:3000",
                   "https://localhost:3000",
-                  "https://happy-dune-0ab12601e.3.azurestaticapps.net"
+                  "https://happy-dune-0ab12601e.3.azurestaticapps.net",
+                  "https://white-bay-07fe2541e.2.azurestaticapps.net"
               )
               .AllowAnyMethod()
               .AllowAnyHeader();
