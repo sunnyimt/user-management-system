@@ -34,7 +34,8 @@ builder.Services.AddCors(options =>
                   "http://localhost:3000",
                   "https://localhost:3000",
                   "https://happy-dune-0ab12601e.3.azurestaticapps.net",
-                  "https://white-bay-07fe2541e.2.azurestaticapps.net"
+                  "https://white-bay-07fe2541e.2.azurestaticapps.net",
+                  "https://black-smoke-0bfcc011e.1.azurestaticapps.net"
               )
               .AllowAnyMethod()
               .AllowAnyHeader();
