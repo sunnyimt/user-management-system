@@ -1,0 +1,619 @@
+[33mcommit 6be2c191cdeef4da7775d47bc327adbeed41b201[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Sun Sep 20 10:43:38 2026 -0700
+
+    Fix response-shape mismatches causing blank pages on Chat/Documents tabs
+    
+    This app has no React Error Boundary anywhere, so an uncaught
+    render-time exception in any component crashes the entire React
+    tree, not just that tab -- explaining why both Chat and Documents
+    appeared blank together from a single root cause.
+    
+    DocumentUpload.js: GET /api/document/my-documents actually returns
+    { success: true, documents: [...] } (confirmed by reading
+    DocumentController.cs), but the component did
+    setDocuments(response.data), storing the whole wrapped object as
+    state. The render then calls documents.map(...), which throws
+    "documents.map is not a function" on that object -- an uncaught
+    render error that unmounts the whole app. Fixed to unwrap
+    response.data.documents.
+    
+    Chat.js: POST /api/chat/search-local actually returns
+    { hasResults, context, message } (a single text block, confirmed by
+    reading ChatController.cs's SearchLocalDatabase action), not
+    { chunks: [...] } as the component assumed. This didn't crash
+    (localResults.chunks && ... short-circuited safely) but silently
+    showed "No relevant documents found" even when the backend did find
+    something. Fixed handleAcceptLocalResults and the results render to
+    use hasResults/context directly instead of a nonexistent chunks
+    array.
+    
+    Both mismatches trace back to the frontend being recreated from
+    scratch earlier this session (the original Frontend/ directory was
+    lost when a git submodule reference was removed) without direct
+    visibility into the real backend response shapes at the time.
+    
+    Verified locally: npm run build compiles successfully with these
+    changes.
+    
+    Note: also found the Tests tab's api.js calls (POST /api/test/run,
+    GET /api/test/results) don't match any actual TestController route
+    (GET /api/test/run-section-e, GET /api/test/run-all exist instead).
+    Left unfixed since it wasn't reported as broken and is a properly
+    caught error, not a crash -- flagging for a separate fix if wanted.
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit d7c1c4e8c38c4bcc861af20b886101d2b8a94f6c[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Sun Sep 20 01:48:57 2026 -0700
+
+    Allow the deployed Static Web App origin in backend CORS policy
+    
+    CORS only allowed localhost:3000, so even with the frontend now
+    pointed at the correct backend URL, the browser would block every
+    response since the deployed origin
+    (https://happy-dune-0ab12601e.3.azurestaticapps.net, confirmed via
+    `az staticwebapp list`) wasn't in the allow-list.
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit 927c66e0b7b58ea2c9e02acd11e5ac952a6391f7[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Sun Sep 20 01:47:00 2026 -0700
+
+    Make frontend API base URL environment-aware instead of hardcoded
+    
+    api.js hardcoded API_BASE_URL = 'http://localhost:5278'. When served
+    from the deployed Azure Static Web App, that points at the visitor's
+    own machine, not the backend -- explaining the generic "Login
+    failed. Please try again." (axios's err.response is undefined on a
+    failed/unreachable request, so Login.js falls back to that default
+    message instead of surfacing the backend's actual response).
+    
+    Changed to read process.env.REACT_APP_API_BASE_URL, falling back to
+    localhost:5278 for local dev (Create React App requires the
+    REACT_APP_ prefix and bakes the value in at build time, not
+    runtime). Wired this through build-and-deploy.yml: added the same
+    branch->environment suffix step used in the deploy job, and set
+    REACT_APP_API_BASE_URL to the matching App Service URL
+    (https://usermanagement-app-{suffix}.azurewebsites.net) before
+    `npm run build`.
+    
+    Verified locally: built with
+    REACT_APP_API_BASE_URL=https://usermanagement-app-prod.azurewebsites.net
+    and confirmed that exact string is present in the compiled bundle
+    (build/static/js/main.*.js), not just left as a source-level
+    reference.
+    
+    Note: main and staging currently deploy to the same single Azure
+    Static Web App resource (one AZURE_STATIC_WEB_APPS_API_TOKEN
+    secret, no per-branch deployment_environment_name set on the
+    deploy action), so whichever branch deploys last determines which
+    backend URL the live frontend is pointed at. That's a separate,
+    pre-existing environment-separation gap not addressed by this
+    change.
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit 7baa8d4c58efea219bb29c5243653b2b68cb7787[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Sun Sep 20 01:13:35 2026 -0700
+
+    Fix health check to POST to /api/auth/login instead of GET
+    
+    The health check sent a bare GET to /api/auth/login, a POST-only
+    endpoint. ASP.NET Core correctly responded 405 Method Not Allowed --
+    proof the app, DB connection, and routing are all working -- but the
+    health check only accepted 200/401, so a genuinely healthy deploy
+    was reported as failed.
+    
+    Changed the check to actually POST a JSON body with bogus
+    credentials, matching real client usage. This is a better health
+    check than just accepting 405: it exercises the real login flow
+    (JSON binding, DB lookup, BCrypt verify) end-to-end. Expected
+    result is 401 (bogus credentials correctly rejected), which the
+    check already accepted.
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit 43f4db1350f75d842fa4a651a51a6e2297025753[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Sun Sep 20 00:38:52 2026 -0700
+
+    Auto-create users table on startup like the other core tables
+    
+    Program.cs already auto-creates chat_messages, documents, and
+    document_chunks via raw SQL on startup, but never users -- it only
+    worked locally because that table was created manually very early
+    in the project (see DATABASE_MIGRATION.md) and never scripted
+    anywhere. Deploying to a fresh Azure PostgreSQL database exposed
+    this: DbSeeder.SeedAsync failed immediately with
+    'relation "users" does not exist' (42P01), crashing the app at
+    startup (IIS 500.30).
+    
+    Added a CREATE TABLE IF NOT EXISTS users block matching the exact
+    schema ApplicationDbContext.OnModelCreating expects for the User
+    entity (id serial PK, username varchar(255) unique not null,
+    password_hash varchar(255) not null, is_deleted boolean default
+    false), placed before the other table-creation blocks since
+    DbSeeder needs it first and chat_messages/documents reference user
+    ids.
+    
+    This also preempts the same crash on the dev/staging App Services,
+    which would have hit an identical fresh-database gap once deployed.
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit fcff520e8dd7d8b47ed9849d153c8a893ecf5408[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Sat Sep 19 17:00:42 2026 -0700
+
+    Migrate backend from .NET 8 to .NET 10
+    
+    The Azure App Service (usermanagement-app-prod) is a Windows App
+    Service configured with netFrameworkVersion "v10.0" -- Azure's
+    current default -- while the project targeted net8.0, causing
+    ASP.NET Core Module to fail launching the app (generic IIS 500
+    error page) since the runtime versions didn't match.
+    
+    Backend/UserManagementAPI/UserManagementAPI.csproj:
+    - TargetFramework: net8.0 -> net10.0
+    - Bumped ASP.NET Core-coupled packages to their net10.0-compatible
+      versions, verified against the NuGet API before pinning (not
+      guessed): Microsoft.AspNetCore.Authentication.JwtBearer 10.0.12,
+      Microsoft.AspNetCore.OpenApi 10.0.12, Npgsql.EntityFrameworkCore.
+      PostgreSQL 10.0.3, Microsoft.EntityFrameworkCore.Tools 10.0.12
+    - Added explicit Microsoft.EntityFrameworkCore and
+      Microsoft.EntityFrameworkCore.Relational 10.0.12 references to
+      resolve a version conflict between what Npgsql.EntityFrameworkCore.
+      PostgreSQL 10.0.3 floats to (10.0.4) and Tools' 10.0.12
+    - Swashbuckle.AspNetCore 6.6.2 -> 10.2.3: 6.6.2 caused a runtime
+      TypeLoadException ("Method 'GetSwagger' ... does not have an
+      implementation") against ASP.NET Core 10's OpenApi package --
+      discovered by actually booting the app via WebApplicationFactory
+      in tests, not just compiling; 10.2.3 has explicit net10.0 support
+      per its nuspec dependency groups
+    - System.IdentityModel.Tokens.Jwt left at 8.22.0 (framework-
+      independent netstandard package, already near-latest, unaffected)
+    
+    Backend/UserManagementAPI.Tests/UserManagementAPI.Tests.csproj:
+    - Microsoft.AspNetCore.Mvc.Testing 8.0.29 -> 10.0.12 (TargetFramework
+      here was already net10.0, pre-dating this migration -- this was
+      the mismatched half)
+    
+    Backend/UserManagementAPI.Tests/VectorSearchTests.cs:
+    - Fixed a pre-existing compile error unrelated to the framework bump:
+      HttpContent.ReadAsAsync<dynamic>() requires the old ASP.NET Web
+      API 2 client library and was never going to compile under any
+      modern TFM. Replaced with ReadFromJsonAsync<JsonElement>() and a
+      ValueKind check (Assert.NotNull on a value type is a no-op and
+      flagged by xUnit2002)
+    
+    .github/workflows/build-and-deploy.yml:
+    - DOTNET_VERSION: '8.0.x' -> '10.0.x'
+    - AZURE_WEBAPP_PACKAGE_PATH: net8.0 -> net10.0 publish output path
+    
+    GITHUB_AZURE_SETUP.md, README.md, CLAUDE.md, PdfGenerator.cs:
+    - Updated .NET 8 references to .NET 10. The Linux App Service
+      --runtime string in GITHUB_AZURE_SETUP.md was left as a
+      placeholder with an explicit note to verify via
+      `az webapp list-runtimes` rather than guessing the exact syntax
+      (Azure has changed this string format between CLI versions before)
+    
+    Verified locally before committing:
+    - Full clean rebuild (rm -rf bin/obj): 0 warnings, 0 errors, both
+      API and Tests projects
+    - Ran the full test suite twice independently: 12/16 pass
+      consistently both runs; the 4 failures are pre-existing
+      application/test logic bugs unmasked now that the host actually
+      boots successfully (previously the whole suite failed at
+      WebApplicationFactory startup due to the Swashbuckle
+      TypeLoadException) -- confirmed unrelated to this migration and
+      intentionally left as-is per user instruction:
+        - E3_LoginEndpointShouldBePublic: asserts login never returns
+          401, but AuthController deliberately returns 401 for bad
+          credentials
+        - D5_DeleteDocument: test comment assumes deleting a
+          non-existent document "won't fail", but DocumentService throws
+          InvalidOperationException and the controller's generic catch
+          turns it into 500 instead of 404
+        - D2_UploadDocument_WithoutToken / D6_SearchDocuments: consistent
+          DbUpdateConcurrencyException/DbUpdateException, most likely
+          from VectorSearchTests and AuthorizationTests each booting a
+          separate WebApplicationFactory<Program> instance in parallel
+          (xUnit's default) that both re-seed the shared live local
+          Postgres users table concurrently on startup
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit 284e65d882fd093e15b12e2ae14d6f5a078cc867[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Sat Sep 19 01:22:26 2026 -0700
+
+    Remove duplicate auto-generated Azure Static Web Apps workflow
+    
+    Creating the Static Web App resource in the Azure Portal auto-added
+    azure-static-web-apps-happy-dune-0ab12601e.yml to the repo, wired to
+    its own auto-created secret
+    (AZURE_STATIC_WEB_APPS_API_TOKEN_HAPPY_DUNE_0AB12601E) and pointed
+    at app_location "./Frontend" (the parent folder, not
+    Frontend/user-management-app where package.json actually lives, and
+    without skip_app_build). This duplicated and conflicted with the
+    existing "Deploy Frontend to Azure Static Web Apps" step in
+    build-and-deploy.yml, which already builds the frontend correctly
+    and deploys the pre-built artifact using the AZURE_STATIC_WEB_APPS_API_TOKEN
+    secret added manually earlier.
+    
+    Per user's choice, kept the single coordinated pipeline in
+    build-and-deploy.yml and removed the auto-generated duplicate.
+    Azure Portal's own "Deployment" view for this Static Web App may now
+    show as disconnected from a workflow, but deploys continue to work
+    via the existing pipeline.
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit 420ef3ffd0e505cd9bb76fb78c758cd6fdc6d7f5[m
+Merge: eeff850 03667bb
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Sat Sep 19 01:20:33 2026 -0700
+
+    Merge branch 'main' of https://github.com/sunnyimt/user-management-system
+
+[33mcommit eeff8508613df316e8409742088a997f8b7194ba[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Sat Sep 19 01:20:25 2026 -0700
+
+    Replace placeholder Azure resource names with actual deployment values
+    
+    GITHUB_AZURE_SETUP.md used guessed placeholder names throughout
+    (usermanagement-rg, usermanagement-db, usermanagementdb_prod,
+    azuredbadmin) that never matched the resources actually created:
+    
+    - Resource group: usermanagement-rg -> rg-usermanagementapp
+    - PostgreSQL server: usermanagement-db -> asif-postgres
+    - Database name: usermanagementdb_prod -> usermanagementdb
+    - Admin user: azuredbadmin -> postgres
+    
+    Also added an inline note on the appsettings command clarifying it
+    must be set via `az webapp config appsettings set` (Application
+    Settings), not `az webapp config connection-string set` — the two
+    are different Azure features and only the former is readable by
+    .NET's GetConnectionString("DefaultConnection"), which was the root
+    cause of the earlier 500 error on /api/auth/login.
+    
+    deploy.md intentionally left unchanged — it's a generic self-hosted
+    deployment guide (Docker Compose, example.com placeholders), not
+    specific to this Azure setup.
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit 03667bb570c0841194ca13c69912ee47bb6d9766[m
+Author: sunnyimt <69417569+sunnyimt@users.noreply.github.com>
+Date:   Fri Sep 18 23:30:17 2026 -0700
+
+    ci: add Azure Static Web Apps workflow file
+    on-behalf-of: @Azure opensource@microsoft.com
+
+[33mcommit 429c000614a50d481a242ad2ac73f333a27dca1b[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 23:13:11 2026 -0700
+
+    Fix health-check URL drift from deploy target on develop pushes
+    
+    The Deploy Backend step computed the target App Service name with a
+    three-way branch mapping (main->prod, staging->staging, else->dev),
+    but the Health Check step used a different two-way mapping
+    (main->prod, else->staging) copy-pasted separately. A push to
+    develop deployed to usermanagement-app-dev but then health-checked
+    usermanagement-app-staging instead.
+    
+    Added a single "Determine target environment suffix" step that
+    computes the suffix once via $GITHUB_OUTPUT, and pointed both the
+    deploy step's app-name and the health check's URL at that same
+    output. The two can no longer drift apart because there's only one
+    source of truth now.
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit 91b96239b7ed95707984e49dfefd08e0869a168d[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 23:11:20 2026 -0700
+
+    Remove staging-slot deployment; deploy directly to App Service
+    
+    Deployment failed with "Resource usermanagement-app-prod/staging of
+    type Microsoft.Web/Sites/Slots doesn't exist" because the workflow
+    targeted a deployment slot that was never created. Root cause: Azure
+    deployment slots require the Standard (S1) tier or higher, and this
+    setup uses the B1 Basic tier for cost — B1 doesn't support slots at
+    all, so the slot could never have been created without an upgrade.
+    
+    Per user's choice, simplified the workflow instead of upgrading the
+    plan:
+    - azure/webapps-deploy: drop `slot-name: staging`, deploy straight
+      to the target App Service
+    - Removed the now-dead "Swap Slots (Production only)" step
+    - Updated GITHUB_AZURE_SETUP.md (branch strategy diagram, production
+      release steps, rollback section) to describe direct deployment
+      instead of slot swap, with a note on how to reintroduce slots if
+      the plan is later upgraded to Standard+
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit 3bda26ef5ee8d286653a8e8234c7eca5971e1f6c[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 22:46:00 2026 -0700
+
+    Fix invalid action version and Node.js 20 deprecation notice
+    
+    - Azure/static-web-apps-deploy@v2 does not exist as a release tag
+      (only v1 is published) — this was a guess I made earlier without
+      checking, and it broke the deploy job outright. Reverted to v1.
+    - actions/upload-artifact@v4 and download-artifact@v4 triggered a
+      Node.js 20 deprecation notice; bumped both to v5 (matched pair).
+    
+    Verified every action version referenced in both workflow files
+    against the actual upstream tags via `git ls-remote --tags` before
+    committing, rather than guessing:
+      actions/checkout@v5, actions/setup-dotnet@v5, actions/setup-node@v5,
+      actions/upload-artifact@v5, actions/download-artifact@v5,
+      actions/github-script@v6, azure/login@v2, azure/webapps-deploy@v3,
+      Azure/static-web-apps-deploy@v1, azure/CLI@v1 — all confirmed to
+      exist as published tags.
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit fc59ab1e8eb819d6bc652d2722c69ed0dafbb06a[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 18:42:42 2026 -0700
+
+    Fix typescript peer dependency conflict breaking npm ci
+    
+    react-scripts@5.0.1 declares an optional peer dependency on
+    typescript "^3.2.1 || ^4", but npm's auto peer-install resolved it
+    to the latest published version (7.0.2), which violates that range.
+    npm ci correctly refuses to install from a lockfile in that state.
+    
+    Added an "overrides" entry pinning typescript to ^4.9.5 so npm
+    resolves a version actually satisfying react-scripts' peer range,
+    then regenerated package-lock.json from a clean node_modules.
+    
+    Verified locally:
+    - npm ci succeeds from the new lockfile
+    - npm run build compiles successfully, 0 warnings
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit bd0e7cfeabe000d92546164a4b7dc156f1b42123[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 18:31:56 2026 -0700
+
+    Commit package-lock.json for reproducible CI builds
+    
+    .gitignore was excluding package-lock.json globally, so npm ci in
+    GitHub Actions had no lockfile to install from and failed with
+    EUSAGE. Removed the blanket exclusion and committed the lockfile —
+    npm ci requires it to exist for deterministic, cached installs.
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit 4d74499b2ca80e94d4bb0f2f447c8e8bdd7ed8ca[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 18:29:22 2026 -0700
+
+    Fix remaining nullable reference warnings and interface mismatches
+    
+    - UserService.cs: Fix implementation signatures to match nullable
+      interface (GetUserByIdAsync, GetUserByUsernameAsync, UpdateUserAsync)
+    - DocumentController.cs: Add null/empty check for SearchRequest.Query
+      before passing to GenerateEmbeddingContextAsync
+    - DocumentService.cs: Add null check for c.Document in query filter;
+      use null-conditional operator for chunk.Document.FileName
+    - ChatService.cs: Add null coalescing for GetString() result; make
+      streaming reader line variable nullable
+    
+    Verified with local `dotnet build --configuration Release`: 0 errors, 0 warnings.
+    
+    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01UfkEsAt35MtNPmN5zi9HWR
+
+[33mcommit fad0364c11b2e0139531d6f44d801befd238a46e[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 18:25:35 2026 -0700
+
+    Fix remaining nullable reference warnings
+    
+    - AuthController.cs: Add null coalescing to user.Username in Claim
+    - ChatController.cs: Make ChatRequest.Message nullable
+    - DocumentController.cs: Make SearchRequest.Query nullable
+    - DocumentService.cs: Add null coalescing for document.OriginalText
+    - UserService.cs: Make return types nullable for methods that return null
+    - TestController.cs: Make ExtractTestName return type nullable
+    
+    Build should now compile with zero errors.
+
+[33mcommit 46696f84a51656591dbfe140cc75f624b13fba7f[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 18:21:41 2026 -0700
+
+    Fix nullable reference warnings in model classes
+    
+    Make properties nullable in:
+    - User.cs (Username, PasswordHash, Message, User, Token)
+    - Document.cs (FileName, FileType, OriginalText, Document)
+    - DocumentChunk.cs (Document, Content, Embedding)
+    - ChatMessage.cs (Role, Content)
+    
+    This resolves all GitHub Actions build warnings.
+
+[33mcommit 076c66409a737760319559a5a60fbbd0367490ab[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 18:13:54 2026 -0700
+
+    Fix unused variable warning in DocumentUpload component
+
+[33mcommit 8f45c3586317d8e36d05ca6636b88f72f22d43fe[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 17:37:00 2026 -0700
+
+    Add complete React Frontend application with all components
+    
+    Components:
+    - Login: JWT authentication
+    - UserManagement: CRUD operations for users
+    - Chat: Two-step workflow (local DB search + Ollama AI)
+    - DocumentUpload: PDF upload and management
+    - Tests: Section E authorization tests
+    - ApiService: Centralized API integration
+    
+    Features:
+    - JWT token management
+    - Responsive design with CSS
+    - Error handling
+    - Loading states
+    - Document drag-and-drop
+
+[33mcommit d72b22dfa506a2ccee3e3e3eb4bbf00744929979[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 17:30:02 2026 -0700
+
+    Make frontend build optional - skip if not available
+
+[33mcommit 036e210246631a546ecd9a02c0866a956c3d2617[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 17:29:37 2026 -0700
+
+    Revert "Remove frontend submodule - keep as local directory"
+    
+    This reverts commit ce2178d470aef7926c3cbee6497b8bbcb6fceec2.
+
+[33mcommit ce2178d470aef7926c3cbee6497b8bbcb6fceec2[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 17:23:10 2026 -0700
+
+    Remove frontend submodule - keep as local directory
+
+[33mcommit 9483ec71f58384a6097460efa40184f56afa6b0c[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 17:20:52 2026 -0700
+
+    Update remaining checkout actions to v5 for Node.js 24 compatibility
+
+[33mcommit 33787ee001d53b79644633a599f0317238283890[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 17:16:34 2026 -0700
+
+    Remove duplicate auto-generated workflow - use custom build-and-deploy.yml instead
+
+[33mcommit 81e48c2d70e75906a4405bde9af0f76e51d6e680[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 17:14:04 2026 -0700
+
+    Fix Node.js 20 deprecation in auto-generated workflow - update to v5 actions
+
+[33mcommit d8fbed395ba37a90b197b4a94e0d7a80f889edca[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 17:10:27 2026 -0700
+
+    Update GitHub Actions to latest versions for Node.js 24 compatibility
+
+[33mcommit ee2100d952af0f241f8f5bcf5ef8bd87c2eeef44[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 17:08:16 2026 -0700
+
+    Update GitHub Actions to use latest artifact actions (v4)
+
+[33mcommit 83b2d3a2bec3ca53bb73632d2496427f5f50b364[m
+Merge: 8114cb1 d4524db
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 16:51:14 2026 -0700
+
+    Merge branch 'main' of https://github.com/sunnyimt/user-management-system
+
+[33mcommit 8114cb15feb3b3b8af982285815fb90450ac3543[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Fri Sep 18 16:51:06 2026 -0700
+
+    Test deployment workflow
+
+[33mcommit d4524db72b763ba26c690461fac21dfe695d15ff[m
+Author: sunnyimt <69417569+sunnyimt@users.noreply.github.com>
+Date:   Thu Sep 17 12:57:28 2026 -0700
+
+    Add or update the Azure App Service build and deployment workflow config
+
+[33mcommit 89678d08f107db0466cfeedf36ffd5bc2261dcab[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Wed Sep 16 17:43:00 2026 -0700
+
+    Add GitHub Actions CI/CD workflows and Azure deployment configuration
+    
+    - Build and deploy workflow for multi-branch deployment
+    - Database migration workflow for Azure PostgreSQL setup
+    - Code owners configuration for review assignments
+    - Pull request template for standardized contributions
+    - Complete setup guide for GitHub-to-Azure deployment pipeline
+    
+    Supports development, staging, and production environments with:
+      - Automated builds and tests
+      - Containerized deployment
+      - Database migration and verification
+      - Health checks and monitoring
+      - Slot-based deployment for zero-downtime updates
+    
+    Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>
+
+[33mcommit f2b727994e945bd7466a4a74817b0aa442bbb790[m[33m ([m[1;31morigin/staging[m[33m, [m[1;31morigin/develop[m[33m, [m[1;32mstaging[m[33m, [m[1;32mdevelop[m[33m)[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Wed Sep 16 17:39:19 2026 -0700
+
+    Add frontend as git submodule
+
+[33mcommit 97cc25a5898ac6853392a81f34968feca5466807[m
+Author: Development Team <asifhameed.us@gmail.com>
+Date:   Wed Sep 16 17:32:15 2026 -0700
+
+    Initial commit: User Management System
+    
+    ## Features
+    - Backend: ASP.NET Core 8.0 Web API with Entity Framework Core
+    - Frontend: React with TypeScript and modern tooling
+    - Database: PostgreSQL 18.6 with soft-delete pattern
+    - Authentication: JWT tokens with BCrypt password hashing
+    - AI Integration: Ollama (local LLM) with Mistral model
+    - Document Management: PDF upload, text extraction, vector embeddings
+    - Chat System: Two-step workflow with local database search then AI enhancement
+    - Security: CORS, authorization, environment-based configuration
+    
+    ## Project Structure
+    - Backend: ASP.NET Core 8.0 API (Port 5278)
+    - Frontend: React UI (Port 3000)
+    - Database: PostgreSQL (local dev, Azure prod)
+    - LLM: Ollama with Mistral model
+    
+    ## Documentation
+    - CLAUDE.md: Project guidelines and standards
+    - deploy.md: Deployment procedures for production
+    - Code review agent: Automated code quality checks
+    
+    ## Deployment Ready
+    - Docker Compose configuration included
+    - Environment-based configuration
+    - Security best practices implemented
+    - Comprehensive logging and error handling
+    
+    Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>
