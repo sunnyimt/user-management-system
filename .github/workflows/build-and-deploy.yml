@@ -92,6 +92,9 @@ jobs:
     if: github.event_name == 'push'
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/staging' && 'staging' || 'development' }}
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
     - name: Download backend artifact
@@ -129,6 +132,20 @@ jobs:
         package: api-publish
         clean: true
 
+    - name: Install OIDC Client from Core Package
+      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/develop') && hashFiles('frontend-build') != ''
+      run: npm install @actions/core@1.6.0 @actions/http-client
+
+    - name: Get Id Token
+      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/develop') && hashFiles('frontend-build') != ''
+      uses: actions/github-script@v6
+      id: idtoken
+      with:
+        script: |
+          const coredemo = require('@actions/core')
+          return await coredemo.getIDToken()
+        result-encoding: string
+
     - name: Deploy Frontend to Azure Static Web Apps
       if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/develop') && hashFiles('frontend-build') != ''
       uses: Azure/static-web-apps-deploy@v1
@@ -138,6 +155,7 @@ jobs:
         app_location: "frontend-build"
         output_location: ""
         skip_app_build: true
+        github_id_token: ${{ steps.idtoken.outputs.result }}
 
     - name: Run Health Check
       run: |
