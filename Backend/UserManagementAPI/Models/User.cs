@@ -10,6 +10,7 @@ namespace UserManagementAPI.Models
         public string? PasswordHash { get; set; }
         [JsonIgnore]
         public bool IsDeleted { get; set; }
+        public string? UpdatedBy { get; set; }
     }
 
     public class LoginRequest

@@ -11,7 +11,7 @@ namespace UserManagementAPI.Services
         Task<User?> GetUserByIdAsync(int id);
         Task<User?> GetUserByUsernameAsync(string username);
         Task<User> CreateUserAsync(User user);
-        Task<User?> UpdateUserAsync(int id, User user);
+        Task<User?> UpdateUserAsync(int id, User user, string? updatedBy);
         Task DeleteUserAsync(int id);
     }
 
@@ -81,7 +81,7 @@ namespace UserManagementAPI.Services
             }
         }
 
-        public async Task<User?> UpdateUserAsync(int id, User user)
+        public async Task<User?> UpdateUserAsync(int id, User user, string? updatedBy)
         {
             try
             {
@@ -91,6 +91,7 @@ namespace UserManagementAPI.Services
 
                 existingUser.Username = user.Username;
                 existingUser.PasswordHash = HashPassword(user.PasswordHash);
+                existingUser.UpdatedBy = updatedBy;
                 _dbContext.Users.Update(existingUser);
                 await _dbContext.SaveChangesAsync();
                 return existingUser;

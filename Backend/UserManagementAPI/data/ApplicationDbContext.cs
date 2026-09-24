@@ -43,6 +43,10 @@ namespace UserManagementAPI.Data
                     .IsRequired()
                     .HasDefaultValue(false);
 
+                entity.Property(e => e.UpdatedBy)
+                    .HasColumnName("updated_by")
+                    .HasMaxLength(50);
+
                 entity.HasIndex(e => e.Username)
                     .IsUnique();
             });

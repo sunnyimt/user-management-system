@@ -94,6 +94,17 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"Error creating users table: {ex.Message}");
     }
 
+    // Add updated_by audit column to users table if it doesn't exist
+    try
+    {
+        await dbContext.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_by VARCHAR(50);");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error adding updated_by column to users table: {ex.Message}");
+    }
+
     // Create chat_messages table if it doesn't exist
     try
     {

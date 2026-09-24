@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using UserManagementAPI.Models;
 using UserManagementAPI.Services;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace UserManagementAPI.Controllers
 {
@@ -71,7 +72,8 @@ namespace UserManagementAPI.Controllers
                 return BadRequest(new { message = "Username already exists" });
             }
 
-            var updatedUser = await _userService.UpdateUserAsync(id, user);
+            var actingUsername = User.FindFirst(ClaimTypes.Name)?.Value;
+            var updatedUser = await _userService.UpdateUserAsync(id, user, actingUsername);
             return Ok(updatedUser);
         }
 
