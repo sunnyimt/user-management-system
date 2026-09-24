@@ -37,27 +37,27 @@ namespace UserManagementAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<User>> CreateUser([FromBody] User user)
+        public async Task<ActionResult<User>> CreateUser([FromBody] UserRequest request)
         {
-            if (string.IsNullOrEmpty(user?.Username) || string.IsNullOrEmpty(user?.PasswordHash))
+            if (string.IsNullOrEmpty(request?.Username) || string.IsNullOrEmpty(request?.Password))
             {
                 return BadRequest(new { message = "Username and password are required" });
             }
 
-            var existingUser = await _userService.GetUserByUsernameAsync(user.Username);
+            var existingUser = await _userService.GetUserByUsernameAsync(request.Username);
             if (existingUser != null)
             {
                 return BadRequest(new { message = "Username already exists" });
             }
 
-            var createdUser = await _userService.CreateUserAsync(user);
+            var createdUser = await _userService.CreateUserAsync(new User { Username = request.Username, PasswordHash = request.Password });
             return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id }, createdUser);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<User>> UpdateUser(int id, [FromBody] User user)
+        public async Task<ActionResult<User>> UpdateUser(int id, [FromBody] UserRequest request)
         {
-            if (string.IsNullOrEmpty(user?.Username) || string.IsNullOrEmpty(user?.PasswordHash))
+            if (string.IsNullOrEmpty(request?.Username) || string.IsNullOrEmpty(request?.Password))
             {
                 return BadRequest(new { message = "Username and password are required" });
             }
@@ -66,14 +66,14 @@ namespace UserManagementAPI.Controllers
             if (existingUser == null)
                 return NotFound(new { message = "User not found" });
 
-            var userWithSameUsername = await _userService.GetUserByUsernameAsync(user.Username);
+            var userWithSameUsername = await _userService.GetUserByUsernameAsync(request.Username);
             if (userWithSameUsername != null && userWithSameUsername.Id != id)
             {
                 return BadRequest(new { message = "Username already exists" });
             }
 
             var actingUsername = User.FindFirst(ClaimTypes.Name)?.Value;
-            var updatedUser = await _userService.UpdateUserAsync(id, user, actingUsername);
+            var updatedUser = await _userService.UpdateUserAsync(id, new User { Username = request.Username, PasswordHash = request.Password }, actingUsername);
             return Ok(updatedUser);
         }
 
